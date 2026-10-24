@@ -39,11 +39,41 @@ def ask(question: str) -> str:
         
     return response.text
 
+def chat() -> None:
+    """第1回 宿題（実装）: 会話履歴を保ったまま、続けて質問できるチャットループ。"""
+    client = genai.Client(api_key=get_api_key())
+    session = client.chats.create(model=MODEL)  # このセッションが履歴を保持する
+    print(f"[model] {MODEL}")
+    print("会話モードです。終了するには exit と入力するか、何も入力せずに Enter を押してください。")
+
+    while True:
+        try:
+            question = input("\n[あなた] ").strip()
+        except (EOFError, KeyboardInterrupt):
+            break
+        if question in ("", "exit", "quit"):
+            break
+        try:
+            response = session.send_message(question)  # 履歴＋今回の質問をまとめて送る
+        except errors.APIError as e:
+            print(api_error_message(e.code, e.message))
+            continue
+        print(f"\n[Gemini] {response.text}")
+        usage = response.usage_metadata
+        if usage is not None:
+            turns = len(session.get_history()) // 2
+            print(f"  （{turns}往復目 / 入力 {usage.prompt_token_count} / 出力 {usage.candidates_token_count} トークン）")
+    print("会話を終了しました。")
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="素のLLMに質問する")
     parser.add_argument("question", nargs="?", default=DEFAULT_QUESTION)
+    parser.add_argument("--chat", action="store_true", help="会話履歴を保って続けて質問する")
     args = parser.parse_args()
+
+    if args.chat:
+        chat()
+        return
 
     print(f"[model] {MODEL}")
     print(f"[質問] {args.question}\n")
