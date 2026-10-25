@@ -25,7 +25,7 @@ from app.config import get_api_key
 # 待ち時間は無料枠の毎分上限（lite: 15回/分、flash: 5回/分）を超えないように設定
 PLAN = {
     "gemini-3.5-flash-lite": {"repeats": 3, "wait": 5},
-    "gemini-3.8-flash": {"repeats": 1, "wait": 15},
+    "gemini-3.8-flash": {"repeats": 3, "wait": 15},
 }
 
 QUESTIONS = {
