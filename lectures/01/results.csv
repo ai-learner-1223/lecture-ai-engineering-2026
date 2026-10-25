@@ -1,0 +1,31 @@
+timestamp,model,question_id,run,status,latency_s,input_tokens,output_tokens,thoughts_tokens,total_tokens
+2026-10-24 00:35:10,gemini-3.5-flash-lite,short,1,ok,1.29,14,3,0,17
+2026-10-24 00:35:16,gemini-3.5-flash-lite,short,2,ok,0.82,14,1,0,15
+2026-10-24 00:35:22,gemini-3.5-flash-lite,short,3,ok,1.31,14,3,0,17
+2026-10-24 00:35:31,gemini-3.5-flash-lite,general,1,ok,3.62,7,718,0,725
+2026-10-24 00:35:39,gemini-3.5-flash-lite,general,2,ok,3.72,7,778,0,785
+2026-10-24 00:35:47,gemini-3.5-flash-lite,general,3,ok,2.42,7,522,0,529
+2026-10-24 00:35:54,gemini-3.5-flash-lite,course,1,ok,2.52,21,471,0,492
+2026-10-24 00:36:05,gemini-3.5-flash-lite,course,2,ok,5.48,21,353,0,374
+2026-10-24 00:36:13,gemini-3.5-flash-lite,course,3,ok,3.17,21,591,0,612
+2026-10-24 00:37:35,gemini-3.8-flash,short,1,ok,76.82,14,1,48,63
+2026-10-24 00:37:52,gemini-3.8-flash,general,1,error 503,2.13,,,,
+2026-10-24 00:39:06,gemini-3.8-flash,course,1,ok,58.6,21,842,1313,2176
+2026-10-25 01:24:07,gemini-3.8-flash,short,1,ok,97.49,14,1,131,146
+2026-10-25 01:25:59,gemini-3.8-flash,short,2,ok,97.07,14,1,35,50
+2026-10-25 01:27:45,gemini-3.8-flash,short,3,ok,91.06,14,1,35,50
+2026-10-25 01:29:59,gemini-3.8-flash,general,1,ok,118.64,7,849,940,1796
+2026-10-25 01:33:17,gemini-3.8-flash,general,2,ok,183.68,7,706,927,1640
+2026-10-25 01:34:09,gemini-3.8-flash,general,3,ok,36.07,7,847,1051,1905
+2026-10-25 01:34:59,gemini-3.8-flash,course,1,ok,35.28,21,836,1320,2177
+2026-10-25 01:35:39,gemini-3.8-flash,course,2,ok,24.8,21,602,962,1585
+2026-10-25 01:36:38,gemini-3.8-flash,course,3,ok,44.82,21,821,1048,1890
+2026-10-25 02:00:27,gemini-3.5-flash-lite,short,1,ok,0.78,14,1,0,15
+2026-10-25 02:00:33,gemini-3.5-flash-lite,short,2,ok,0.63,14,3,0,17
+2026-10-25 02:00:39,gemini-3.5-flash-lite,short,3,ok,0.57,14,1,0,15
+2026-10-25 02:00:47,gemini-3.5-flash-lite,general,1,ok,3.7,7,628,0,635
+2026-10-25 02:00:56,gemini-3.5-flash-lite,general,2,ok,3.38,7,613,0,620
+2026-10-25 02:01:05,gemini-3.5-flash-lite,general,3,ok,4.06,7,702,0,709
+2026-10-25 02:01:13,gemini-3.5-flash-lite,course,1,ok,2.8,21,549,0,570
+2026-10-25 02:01:20,gemini-3.5-flash-lite,course,2,ok,2.86,21,599,0,620
+2026-10-25 02:01:28,gemini-3.5-flash-lite,course,3,ok,2.37,21,454,0,475
