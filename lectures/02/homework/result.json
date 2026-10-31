@@ -1,0 +1,242 @@
+{
+  "level": "発展",
+  "config": {
+    "base_model": "Qwen/Qwen3.5-0.8B",
+    "revision": "2fc06364715b967f1860aea9cf38778875588b17",
+    "seed": 42,
+    "num_train_epochs": 5,
+    "warmup_steps": 14,
+    "lr": 0.0002,
+    "lora_r": 16,
+    "lora_alpha": 32,
+    "max_seq_len": 768,
+    "max_new_tokens": 256,
+    "gen": {
+      "do_sample": false
+    },
+    "retrieval_max_results": 3
+  },
+  "versions": {
+    "transformers": "5.18.0",
+    "peft": "0.21.1",
+    "trl": "1.14.2",
+    "torch": "2.11.0+cu130"
+  },
+  "method": "LoRA（量子化なし）・closed-book 学習 / 検索は app.tools と同じ名前照合",
+  "data": {
+    "train_records": 210,
+    "train_negatives": 36,
+    "test": {
+      "A": 12,
+      "B": 12,
+      "C": 10
+    }
+  },
+  "train": {
+    "seconds": 602,
+    "steps": 135,
+    "final_loss": 0.04828425943851471
+  },
+  "summary": [
+    {
+      "条件": "base_closed",
+      "区分": "A",
+      "n": 12,
+      "format_rate": 0.0,
+      "content_rate": 0.0,
+      "format_error": 12.0,
+      "ok": 0.0,
+      "wrong_content": 0.0,
+      "asserted": 0.0,
+      "escaped": 0.0
+    },
+    {
+      "条件": "base_closed",
+      "区分": "B",
+      "n": 12,
+      "format_rate": 0.0,
+      "content_rate": 0.0,
+      "format_error": 12.0,
+      "ok": 0.0,
+      "wrong_content": 0.0,
+      "asserted": 0.0,
+      "escaped": 0.0
+    },
+    {
+      "条件": "base_closed",
+      "区分": "C",
+      "n": 10,
+      "format_rate": 0.0,
+      "content_rate": 0.0,
+      "format_error": 10.0,
+      "ok": 0.0,
+      "wrong_content": 0.0,
+      "asserted": 0.0,
+      "escaped": 0.0
+    },
+    {
+      "条件": "base_closed",
+      "区分": "全体",
+      "n": 34,
+      "format_rate": 0.0,
+      "content_rate": 0.0,
+      "format_error": 34.0,
+      "ok": 0.0,
+      "wrong_content": 0.0,
+      "asserted": 0.0,
+      "escaped": 0.0
+    },
+    {
+      "条件": "base_rag",
+      "区分": "A",
+      "n": 12,
+      "format_rate": 0.0,
+      "content_rate": 0.0,
+      "format_error": 12.0,
+      "ok": 0.0,
+      "wrong_content": 0.0,
+      "asserted": 0.0,
+      "escaped": 0.0
+    },
+    {
+      "条件": "base_rag",
+      "区分": "B",
+      "n": 12,
+      "format_rate": 0.167,
+      "content_rate": 0.083,
+      "format_error": 10.0,
+      "ok": 1.0,
+      "wrong_content": 1.0,
+      "asserted": 0.0,
+      "escaped": 0.0
+    },
+    {
+      "条件": "base_rag",
+      "区分": "C",
+      "n": 10,
+      "format_rate": 0.1,
+      "content_rate": 0.0,
+      "format_error": 9.0,
+      "ok": 0.0,
+      "wrong_content": 0.0,
+      "asserted": 1.0,
+      "escaped": 0.0
+    },
+    {
+      "条件": "base_rag",
+      "区分": "全体",
+      "n": 34,
+      "format_rate": 0.088,
+      "content_rate": 0.029,
+      "format_error": 31.0,
+      "ok": 1.0,
+      "wrong_content": 1.0,
+      "asserted": 1.0,
+      "escaped": 0.0
+    },
+    {
+      "条件": "tuned_closed",
+      "区分": "A",
+      "n": 12,
+      "format_rate": 1.0,
+      "content_rate": 1.0,
+      "format_error": 0.0,
+      "ok": 12.0,
+      "wrong_content": 0.0,
+      "asserted": 0.0,
+      "escaped": 0.0
+    },
+    {
+      "条件": "tuned_closed",
+      "区分": "B",
+      "n": 12,
+      "format_rate": 1.0,
+      "content_rate": 0.167,
+      "format_error": 0.0,
+      "ok": 2.0,
+      "wrong_content": 8.0,
+      "asserted": 0.0,
+      "escaped": 2.0
+    },
+    {
+      "条件": "tuned_closed",
+      "区分": "C",
+      "n": 10,
+      "format_rate": 1.0,
+      "content_rate": 0.4,
+      "format_error": 0.0,
+      "ok": 4.0,
+      "wrong_content": 0.0,
+      "asserted": 6.0,
+      "escaped": 0.0
+    },
+    {
+      "条件": "tuned_closed",
+      "区分": "全体",
+      "n": 34,
+      "format_rate": 1.0,
+      "content_rate": 0.529,
+      "format_error": 0.0,
+      "ok": 18.0,
+      "wrong_content": 8.0,
+      "asserted": 6.0,
+      "escaped": 2.0
+    },
+    {
+      "条件": "tuned_rag",
+      "区分": "A",
+      "n": 12,
+      "format_rate": 1.0,
+      "content_rate": 0.833,
+      "format_error": 0.0,
+      "ok": 10.0,
+      "wrong_content": 2.0,
+      "asserted": 0.0,
+      "escaped": 0.0
+    },
+    {
+      "条件": "tuned_rag",
+      "区分": "B",
+      "n": 12,
+      "format_rate": 1.0,
+      "content_rate": 0.417,
+      "format_error": 0.0,
+      "ok": 5.0,
+      "wrong_content": 5.0,
+      "asserted": 0.0,
+      "escaped": 2.0
+    },
+    {
+      "条件": "tuned_rag",
+      "区分": "C",
+      "n": 10,
+      "format_rate": 1.0,
+      "content_rate": 0.6,
+      "format_error": 0.0,
+      "ok": 6.0,
+      "wrong_content": 0.0,
+      "asserted": 4.0,
+      "escaped": 0.0
+    },
+    {
+      "条件": "tuned_rag",
+      "区分": "全体",
+      "n": 34,
+      "format_rate": 1.0,
+      "content_rate": 0.618,
+      "format_error": 0.0,
+      "ok": 21.0,
+      "wrong_content": 7.0,
+      "asserted": 4.0,
+      "escaped": 2.0
+    }
+  ],
+  "regressed": [],
+  "confused": [],
+  "retrieval_hit_rate": {
+    "A": 1.0,
+    "B": 0.583,
+    "C": 0.8
+  },
+  "executed_training_myself": true
+}
