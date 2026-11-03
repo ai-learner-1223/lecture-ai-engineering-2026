@@ -13,7 +13,7 @@
 
 ## 宿題
 
-- 取り組んだレベル：発展（a）ADK で作り直す
+- 取り組んだレベル：発展（a）ADK で作り直す（追加で基礎・実装・発展（b）にも取り組んだ。下に記載）
 - やったこと：
   `adk_agent/glossary_agent/` に `agent.py` と `__init__.py` を作り、演習と同じ `INSTRUCTIONS` と3つのツール（`search_glossary`・`get_lecture_summary`・`make_quiz`）を ADK の `Agent` に渡した。`PYTHONPATH=. uv run --with google-adk adk run adk_agent/glossary_agent` で起動し（モデルは gemini-3.5-flash-lite）、演習と同じ3つの質問を投げた。
 - 結果：
