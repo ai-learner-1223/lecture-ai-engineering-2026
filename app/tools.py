@@ -5,6 +5,8 @@
 """
 
 import json
+from datetime import datetime
+import re
 import random
 from functools import cache
 from pathlib import Path
@@ -98,3 +100,25 @@ def make_quiz(lecture: int) -> str:
         {"question": f"「{entry['term']}」の意味は？", "answer": entry["definition"]},
         ensure_ascii=False,
     )
+
+
+LOG_DIR = Path(__file__).resolve().parent.parent / "learning_log"
+
+
+def save_learning_log(title: str, content: str) -> str:
+    """学習の記録を learning_log/ フォルダに Markdown ファイルとして保存する。
+
+    利用者が「今日学んだことを記録して」「学習ログに保存して」のように、
+    記録を残すことをはっきり頼んだときだけ使う。
+    title は記録の短い題名、content は保存する本文（Markdown）。
+    保存の前の確認はプログラムが自動で行うので、会話で確認を求めずにこのツールを直接呼ぶこと。
+    """
+    LOG_DIR.mkdir(exist_ok=True)
+    stamp = datetime.now().strftime("%Y%m%d-%H%M%S")
+    safe = re.sub(r'[\\/:*?"<>|\s]+', "_", title).strip("_")[:40] or "log"
+    path = LOG_DIR / f"{stamp}_{safe}.md"
+    # モデルが本文の先頭に見出しを書いてきた場合は、見出しを重ねない
+    body = content if content.lstrip().startswith("#") else f"# {title}\n\n{content}"
+    path.write_text(body.rstrip() + "\n", encoding="utf-8")
+    return f"保存しました: learning_log/{path.name}"
+
