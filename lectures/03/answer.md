@@ -13,7 +13,15 @@
 
 ## 宿題
 
-- 取り組んだレベル：基礎 / 実装 / 発展
+- 取り組んだレベル：発展（a）ADK で作り直す
 - やったこと：
+  `adk_agent/glossary_agent/` に `agent.py` と `__init__.py` を作り、演習と同じ `INSTRUCTIONS` と3つのツール（`search_glossary`・`get_lecture_summary`・`make_quiz`）を ADK の `Agent` に渡した。`PYTHONPATH=. uv run --with google-adk adk run adk_agent/glossary_agent` で起動し（モデルは gemini-3.5-flash-lite）、演習と同じ3つの質問を投げた。
 - 結果：
+  - 「3レベル」：基礎・実装・発展のどれか1つで完了、原則採点しない、関係する回：第1回。Pydantic AI 版とほぼ同じ回答。
+  - 「LoRAとQLoRAの違い」：用語集の定義に沿った説明で、関係する回：第2回。こちらも同等。
+  - 「第2回の確認問題」：「事前学習」の意味を問う問題を出し、答えは伏せた（演習では「過学習」。make_quiz が random.choice で選ぶため毎回変わる）。
+  - 書き方の違い：Pydantic AI は `Agent(instructions=...)` を作ってから `agent.tool_plain(関数)` で1つずつ登録し、自前の CLI（`app/agent.py`）から `run_sync` で実行する。ADK は `Agent(name=..., model=..., instruction=..., tools=[関数, ...])` とコンストラクタにまとめて渡し、`root_agent` という変数名と `__init__.py` の規約で `adk run` がエージェントを見つけて対話 CLI を提供する。どちらも関数の docstring と型ヒントからツールの説明を自動で作る点は同じ。
 - 気づき・疑問：
+  - 指示とツールの docstring が同じなら、フレームワークを変えても回答やふるまいはほぼ変わらなかった。ふるまいを決めているのはフレームワークより指示と docstring だと分かった。
+  - `adk run` は会話の履歴を保ったまま続く対話形式で、1問ごとに終わる `app.agent` と違う。途中で誤って入力した文も履歴に残る。
+  - `adk run` には `--trace` に相当する表示がなく、どのツールが何回呼ばれたかが画面からは分からない。確認するには `adk web` のイベント表示などを使う必要がありそう。
