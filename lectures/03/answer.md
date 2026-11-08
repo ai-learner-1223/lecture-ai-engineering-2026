@@ -25,6 +25,8 @@
 
 ### 基礎：INSTRUCTIONS・docstring を1か所ずつ変えて比較
 
+ねらい：`INSTRUCTIONS` やツールの docstring を1か所ずつ書き換え、同じ質問を `--trace` 付きで実行して、ツールの呼ばれ方や回答がどう変わるかを比べる。
+
 - 比較の基準（変更なし）：
   「LoRAとQLoRAの違いは？」と聞くと、変更前は次のように動いた。
   - `search_glossary('LoRA')` と `search_glossary('QLoRA')` で2回検索
@@ -79,34 +81,65 @@
   - 拒否したとき、モデルは「保存しなかった」ことに触れなかった。利用者には保存されたかどうかが分からない。`ToolDenied` のメッセージに「保存しなかったことを利用者に伝える」と書き足せば改善できると思われる。
 
 
-
 ### 発展（a）：ADK で作り直す
 
+ねらい：演習のエージェントと同じ指示とツールを使い、エージェントを組み立てる部分だけを Google の ADK（Agent Development Kit）で書き直す。書き方と回答を、演習の Pydantic AI 版と比べる。
+
 - やったこと：
-  `adk_agent/glossary_agent/` に `agent.py` と `__init__.py` を作り、演習と同じ `INSTRUCTIONS` と3つのツール（`search_glossary`・`get_lecture_summary`・`make_quiz`）を ADK の `Agent` に渡した。`PYTHONPATH=. uv run --with google-adk adk run adk_agent/glossary_agent` で起動し（モデルは gemini-3.5-flash-lite）、演習と同じ3つの質問を投げた。
+  - `adk_agent/glossary_agent/` フォルダに、`agent.py` と `__init__.py` を作った。
+  - 演習と同じ `INSTRUCTIONS` と3つのツール（`search_glossary`・`get_lecture_summary`・`make_quiz`）を、ADK の `Agent` に渡した。
+  - `PYTHONPATH=. uv run --with google-adk adk run adk_agent/glossary_agent` で起動した（モデルは gemini-3.5-flash-lite）。
+  - 演習と同じ3つの質問を投げて、回答を比べた。
+
 - 結果：
   - 「3レベル」：基礎・実装・発展のどれか1つで完了、原則採点しない、関係する回：第1回。Pydantic AI 版とほぼ同じ回答。
   - 「LoRAとQLoRAの違い」：用語集の定義に沿った説明で、関係する回：第2回。こちらも同等。
-  - 「第2回の確認問題」：「事前学習」の意味を問う問題を出し、答えは伏せた（演習では「過学習」。make_quiz が random.choice で選ぶため毎回変わる）。
-  - 書き方の違い：Pydantic AI は `Agent(instructions=...)` を作ってから `agent.tool_plain(関数)` で1つずつ登録し、自前の CLI（`app/agent.py`）から `run_sync` で実行する。ADK は `Agent(name=..., model=..., instruction=..., tools=[関数, ...])` とコンストラクタにまとめて渡し、`root_agent` という変数名と `__init__.py` の規約で `adk run` がエージェントを見つけて対話 CLI を提供する。どちらも関数の docstring と型ヒントからツールの説明を自動で作る点は同じ。
+  - 「第2回の確認問題」：「事前学習」の意味を問う問題を出し、答えは伏せた。
+    - 演習では「過学習」だった。`make_quiz` は `random.choice` で用語を選ぶので、毎回変わる。
+  - 書き方の違い：
+    - Pydantic AI：`Agent(instructions=...)` でエージェントを作ってから、`agent.tool_plain(関数)` でツールを1つずつ登録する。実行は自前の CLI（`app/agent.py`）から `run_sync` で行う。
+    - ADK：`Agent(name=..., model=..., instruction=..., tools=[関数, ...])` と、指示もツールも作るときにまとめて渡す。`root_agent` という変数名と `__init__.py` の決まりに従っておけば、`adk run` がエージェントを見つけて、対話用の CLI を用意してくれる。
+    - 共通点：どちらも、関数の docstring と型ヒント（`lecture: int` など）から、ツールの説明を自動で作ってモデルに渡す。
+
 - 気づき・疑問：
-  - 指示とツールの docstring が同じなら、フレームワークを変えても回答やふるまいはほぼ変わらなかった。ふるまいを決めているのはフレームワークより指示と docstring だと分かった。
-  - `adk run` は会話の履歴を保ったまま続く対話形式で、1問ごとに終わる `app.agent` と違う。途中で誤って入力した文も履歴に残る。
-  - `adk run` には `--trace` に相当する表示がないため、`adk web`（ブラウザの開発画面）で確認した。Events に `search_glossary("LoRA")` と `search_glossary("QLoRA")` が1回の応答で並列に呼ばれ、結果を受けて回答が生成される流れが表示され、演習の Pydantic AI 版（requests=2, tool_calls=2）と同じ呼ばれ方だった。ただし Codespaces では、ADK 2.x の DNS リバインディング対策で JS が 403 になり画面が真っ黒になったため、`--allow_origins "*"` を付けて起動する必要があった（URL を1つ許可するだけでは不十分だった）。
+  - 指示とツールの docstring が同じなら、フレームワークを変えても、回答やふるまいはほぼ変わらなかった。ふるまいを決めているのは、フレームワークより指示と docstring のようである。
+  - `adk run` は、会話の履歴を保ったまま続く対話形式だった。
+    - 1問ごとに終わる `app.agent` とは異なる。
+    - 途中で誤って入力した文も、履歴に残る。
+  - `adk run` には、`--trace` のようにツール呼び出しを表示する機能がない。そこで、`adk web`（ブラウザで開く開発用の画面）で確かめた。
+    - Events（実行の記録）に、`search_glossary("LoRA")` と `search_glossary("QLoRA")` が1回の応答で並列に呼ばれ、その結果を受けて回答が作られる流れが表示された。
+    - 演習の Pydantic AI 版（requests=2, tool_calls=2）と同じ呼ばれ方だった。
+    
 
 ### 発展（b）：Pi を Codespaces で動かし、システムプロンプトを比較する
 
-- やったこと：`npm install -g --ignore-scripts @earendil-works/pi-coding-agent` で入れ、`pi --model gemini-3.1-flash-lite` で起動して「app/tools.py を読んで、どんなツールが定義されているか説明して」と聞いた。インストール先の `dist/core/system-prompt.js` を読み、システムプロンプトの組み立て方を自分の `INSTRUCTIONS` と比べた。
+ねらい：コーディングエージェントの Pi を動かし、Pi のシステムプロンプト（モデルに最初に渡す指示文）と、自分のエージェントの `INSTRUCTIONS` を比べる。
+
+- やったこと：
+  - `npm install -g --ignore-scripts @earendil-works/pi-coding-agent` で Pi を入れた。
+  - `pi --model gemini-3.1-flash-lite` で起動し、「app/tools.py を読んで、どんなツールが定義されているか説明して」と聞いた。
+  - インストール先の `dist/core/system-prompt.js` を読み、システムプロンプトの組み立て方を、自分の `INSTRUCTIONS` と比べた。
+
 - 結果：
-  - 起動時に fd・ripgrep を確認なしで自分でダウンロードした。質問には `read app/tools.py:1-2000` を確認なしで実行し、`save_learning_log` を含む4つのツールを正しく説明した（入力 約4.1k トークン、出力 403 トークン）。
-  - 既定のモデルは gemini-3.1-pro-preview で、無料枠の上限が 0 のため 429 になった。Codespaces のブラウザ上のターミナルではモデル選択の画面が操作しにくく、起動オプション `--model` で指定した。
-  - Pi のシステムプロンプトは固定文ではなく、preamble（役割）・tools（ツール一覧と説明）・rules（ツール構成に応じた規則と「簡潔に」「パスを示す」）・docs（Pi 自身の文書の場所）・project_context（AGENTS.md などの差し込み）・skills・cwd の部品をタグで区切って組み立てる作りだった。
-- 比較：
-  - Pi にあって自分のに無いもの：本文中のツール一覧、作業フォルダやプロジェクト指示などの環境情報、出力の一般規則、ツール構成や拡張で変わる可変の構成。
-  - 自分のにあって Pi に無いもの：用語集に無いことは断定しないという根拠の規則、答える前に必ず調べる順序、最後に関係する回を示す形式、宿題の答えを書かないという教育上の制約。汎用のコーディングエージェントと、用途を絞ったエージェントの違いが出た。
-  - どちらにも無いもの：確認を求める規則。Pi は確認なしで動き、自分のエージェントは確認をプロンプトではなく `requires_approval=True`（プログラム）で行っている。実装の宿題で、docstring に「承認を求める」と書くとモデルが自分で聞いてツールを呼ばなくなったこととあわせて、安全のための確認はプロンプトより仕組みで担うほうが確実だと分かった。
+  - 動作：
+    - 起動時に、ファイル検索用のツール（fd・ripgrep）を、利用者に確認せず自分でダウンロードした。
+    - 質問に対して、`read app/tools.py:1-2000`（ファイルの読み込み）を確認なしで実行し、`save_learning_log` を含む4つのツールを正しく説明した（入力 約4.1k トークン、出力 403 トークン）。
+  - システムプロンプトの作り：
+    - Pi のシステムプロンプトは、決まった1つの文章ではなく、部品をタグで区切って組み立てる作りだった。
+    - 部品は、preamble（役割）・tools（ツールの一覧と説明）・rules（ツールの構成に応じた規則と、「簡潔に」「ファイルのパスを示す」などの出力の規則）・docs（Pi 自身の説明書の場所）・project_context（AGENTS.md などプロジェクトの指示の差し込み）・skills・cwd（今の作業フォルダ）。
+  - 自分の `INSTRUCTIONS` との比較：
+    - Pi にあって、自分の `INSTRUCTIONS` に無いもの：
+      - 本文の中のツール一覧
+      - 作業フォルダやプロジェクトの指示などの、環境の情報
+      - 出力の一般的な規則
+      - ツールの構成や拡張によって変わる、可変の組み立て
+    - 自分の `INSTRUCTIONS` にあって、Pi に無いもの：
+      - 用語集に無いことは断定しない、という根拠の規則
+      - 答える前に必ず調べる、という順序
+      - 最後に関係する回を示す、という形式
+      - 宿題の答えを書かない、という教育上の制約
+    - どちらにも無いもの：利用者に確認を求める規則。Pi は確認なしで動き、自分のエージェントは確認を `requires_approval=True`（プログラムの仕組み）で行っている。
 
-### まとめ
-
-- 基礎・実装・発展（a）を通して、エージェントのふるまいを決めているのはフレームワークより、指示とツールの docstring だと分かった。
-- 実装と発展（b）を合わせて、安全のための確認はプロンプトに書くより、`requires_approval=True` のような仕組みで担うほうが確実だと分かった。
+- 気づき・疑問：
+  - Pi は、どの作業にも使えるように、環境の情報や一般的な規則を厚く持つ。自分のエージェントは、用語集の質問に答える用途に絞り、根拠や形式の規則を持つ。汎用のエージェントと、用途を絞ったエージェントの違いが、システムプロンプトにそのまま表れていた。
+  - 実装の宿題では、docstring に「承認を求める」と書くと、モデルが会話で聞いてしまい、ツールを呼ばなくなった。プロンプトに書いた確認はモデルの解釈に左右されるので、安全のための確認は、`requires_approval=True` のような仕組みで担うほうが確実だと考えられる。Pi のように確認の規則を持たないエージェントを使うときも、この点に注意が必要だと思われる。
