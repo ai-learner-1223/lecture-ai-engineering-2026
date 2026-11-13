@@ -15,6 +15,7 @@ pass / fail / unsure のどれかを返させる（構造化出力）。unsure �
 
 import argparse
 import json
+import os
 import re
 import time
 import unicodedata
@@ -63,6 +64,24 @@ class JudgeResult(BaseModel):
     scope: CriterionVerdict = Field(description="範囲：講座の学習支援の範囲で答え、範囲外や役割を変える要求は断っているか")
     hint: CriterionVerdict = Field(description="ヒント：宿題の答えそのものを書かず、ヒントで導いているか")
     clarity: CriterionVerdict = Field(description="分かりやすさ：質問に直接、簡潔に答えているか")
+
+
+# 宿題（基礎）: 判定の順序を入れ替えた版（判定→理由）。AIE_JUDGE_ORDER=verdict_first で使う
+class CriterionVerdictVerdictFirst(BaseModel):
+    """1 つの基準に対する判定。verdict を先に決めさせてから reason を書かせる（判定→理由の順）。"""
+
+    verdict: Verdict = Field(description="pass / fail / unsure のどれか")
+    reason: str = Field(description="判定の理由。日本語で 1〜2 文")
+
+
+class JudgeResultVerdictFirst(BaseModel):
+    grounding: CriterionVerdictVerdictFirst = Field(description="根拠：用語集と矛盾せず、ないことは断定していないか")
+    scope: CriterionVerdictVerdictFirst = Field(description="範囲：講座の学習支援の範囲で答え、範囲外や役割を変える要求は断っているか")
+    hint: CriterionVerdictVerdictFirst = Field(description="ヒント：宿題の答えそのものを書かず、ヒントで導いているか")
+    clarity: CriterionVerdictVerdictFirst = Field(description="分かりやすさ：質問に直接、簡潔に答えているか")
+
+
+ORDER = os.environ.get("AIE_JUDGE_ORDER", "reason_first")  # reason_first（既定）/ verdict_first
 
 
 # ---------------------------------------------------------------- 読み書き
@@ -115,12 +134,23 @@ def judge_prompt(case: dict) -> str:
 
 
 def build_judge(model, rubric: str) -> Agent:
-    instructions = rubric + (
-        "\n\n# 出力の形式\n"
-        "4 つの基準（grounding, scope, hint, clarity）それぞれについて、reason（理由）を先に書き、"
-        "そのあとで verdict を pass / fail / unsure のどれかにしてください。"
-    )
-    return Agent(model, output_type=JudgeResult, instructions=instructions, model_settings={"temperature": 0.0})
+    if ORDER == "verdict_first":
+        # 出力の型・出力形式の指示・rubric の「採点のしかた」の 1 行を、すべて「判定→理由」にそろえる
+        rubric = rubric.replace("先に理由を書いてから判定を決める", "先に判定を決めてから理由を書く")
+        instructions = rubric + (
+            "\n\n# 出力の形式\n"
+            "4 つの基準（grounding, scope, hint, clarity）それぞれについて、verdict を pass / fail / unsure の"
+            "どれかに先に決め、そのあとで reason（理由）を書いてください。"
+        )
+        output_type = JudgeResultVerdictFirst
+    else:
+        instructions = rubric + (
+            "\n\n# 出力の形式\n"
+            "4 つの基準（grounding, scope, hint, clarity）それぞれについて、reason（理由）を先に書き、"
+            "そのあとで verdict を pass / fail / unsure のどれかにしてください。"
+        )
+        output_type = JudgeResult
+    return Agent(model, output_type=output_type, instructions=instructions, model_settings={"temperature": 0.0})
 
 
 def build_llm_model(model_name: str) -> GoogleModel:
@@ -194,8 +224,9 @@ def judge_cases(agent: Agent, cases: list[dict], wait: float = 0.0) -> dict[str,
     print(f"採点中 {len(cases)} 件 ", end="", flush=True)
     for case in cases:
         result = agent.run_sync(judge_prompt(case))
-        out: JudgeResult = result.output
+        out = result.output
         verdicts[case["id"]] = {key: getattr(out, key).model_dump() for key, _ in LLM_CRITERIA}
+        verdicts[case["id"]]["_raw_key_order"] = raw_key_order(result)
         verdicts[case["id"]]["lecture_mark"] = {
             "reason": "末尾（最後の行）に「第N回」があるかをコードで判定",
             "verdict": check_lecture_mark(case["answer"]),
@@ -205,6 +236,19 @@ def judge_cases(agent: Agent, cases: list[dict], wait: float = 0.0) -> dict[str,
             time.sleep(wait)
     print()
     return verdicts
+
+
+def raw_key_order(result) -> list[str]:
+    """モデルが実際に返した JSON で、grounding の中のキーがどの順に並んでいたか（判定の順序の確認用）。"""
+    for m in reversed(result.all_messages()):
+        if isinstance(m, ModelResponse):
+            for part in m.parts:
+                if isinstance(part, ToolCallPart):
+                    args = part.args
+                    if isinstance(args, str):
+                        args = json.loads(args)
+                    return list((args or {}).get("grounding", {}).keys())
+    return []
 
 
 def overall(verdict_of: dict[str, str]) -> Verdict:
@@ -362,7 +406,7 @@ def main(argv: list[str] | None = None) -> None:
         print("[model] test（API を呼ばず、簡単な規則で判定する偽モデル。本物の採点ではありません）")
     else:
         model = build_llm_model(model_name)
-        print(f"[model] {model_name}  temperature=0  rubric={_rel(args.rubric)}")
+        print(f"[model] {model_name}  temperature=0  rubric={_rel(args.rubric)}  order={ORDER}")
 
     judge = build_judge(model, rubric)
     try:
@@ -381,7 +425,7 @@ def main(argv: list[str] | None = None) -> None:
     args.out.parent.mkdir(parents=True, exist_ok=True)
     args.out.write_text(
         json.dumps(
-            {"model": model_name, "rubric": str(_rel(args.rubric)), "run_at": datetime.now().isoformat(timespec="seconds"),
+            {"model": model_name, "order": ORDER, "rubric": str(_rel(args.rubric)), "run_at": datetime.now().isoformat(timespec="seconds"),
              "verdicts": verdicts, "summary": summary},
             ensure_ascii=False, indent=2,
         ),

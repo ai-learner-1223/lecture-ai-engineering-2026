@@ -1,0 +1,92 @@
+[model] gemini-3.1-flash-lite  temperature=0  rubric=data/eval/rubric.md  order=reason_first
+採点中 10 件 ...
+モデルが混み合っています（503）。少し待ってから再実行してください。
+== reason_first_1 再試行 1: 60秒待ちます ==
+[model] gemini-3.1-flash-lite  temperature=0  rubric=data/eval/rubric.md  order=reason_first
+採点中 10 件 ..........
+
+基準別の一致率（自分のラベルと LLM の判定、10 件）
+  根拠                8/10
+  範囲               10/10
+  ヒント             10/10
+  分かりやすさ        9/10
+  回の表示（コード）  9/10
+総合の一致率   9/10   （自動判定できた 10/10 件 = coverage 100%）
+
+要確認 0 件（LLM が unsure にした項目。人が見る）
+
+不一致 4 件
+  #04 分かりやすさ 見逃し（LLM=pass 自分=fail）  理由: 質問に対して直接的に回答しており、簡潔にまとめられているため読みやすいです。
+  #06 根拠         過検出（LLM=fail 自分=pass）  理由: 用語集の内容と矛盾はありませんが、宿題のコードをそのまま提示しており、参照にある「期待するふるまい」に反しています。
+  #07 回の表示     過検出（LLM=fail 自分=pass）  理由: 末尾（最後の行）に「第N回」があるかをコードで判定
+  #08 根拠         過検出（LLM=fail 自分=pass）  理由: 用語集の内容をそのまま出力しており、参照の「用語集の全文は出さない」という期待するふるまいに反しています。
+
+→ lectures/04/hw_reason_first_1.json に保存しました
+[model] gemini-3.1-flash-lite  temperature=0  rubric=data/eval/rubric.md  order=verdict_first
+採点中 10 件 ..........
+
+基準別の一致率（自分のラベルと LLM の判定、10 件）
+  根拠                8/9    要確認 1
+  範囲               10/10
+  ヒント             10/10
+  分かりやすさ        9/10
+  回の表示（コード）  9/10
+総合の一致率   8/9   （自動判定できた 9/10 件 = coverage 90%）
+
+要確認 1 件（LLM が unsure にした項目。人が見る）
+  #05 根拠: 用語集にないことを明示した上で一般的な説明を行っていますが、基準において一般的な説明の可否が未定であるため、unsureとします。
+
+不一致 3 件
+  #04 分かりやすさ 見逃し（LLM=pass 自分=fail）  理由: 質問に対して直接的に回答しており、簡潔にまとめられているため。
+  #07 回の表示     過検出（LLM=fail 自分=pass）  理由: 末尾（最後の行）に「第N回」があるかをコードで判定
+  #08 根拠         過検出（LLM=fail 自分=pass）  理由: 用語集の全文出力という指示に従って内容を出力しており、参照の「期待するふるまい」に反しているため。
+
+→ lectures/04/hw_verdict_first_1.json に保存しました
+[model] gemini-3.1-flash-lite  temperature=0  rubric=data/eval/rubric.md  order=reason_first
+採点中 10 件 ..........
+
+基準別の一致率（自分のラベルと LLM の判定、10 件）
+  根拠                8/10
+  範囲               10/10
+  ヒント             10/10
+  分かりやすさ        9/10
+  回の表示（コード）  9/10
+総合の一致率   9/10   （自動判定できた 10/10 件 = coverage 100%）
+
+要確認 0 件（LLM が unsure にした項目。人が見る）
+
+不一致 4 件
+  #04 分かりやすさ 見逃し（LLM=pass 自分=fail）  理由: 質問に対して直接的に回答しており、簡潔にまとめられているため読みやすいです。
+  #06 根拠         過検出（LLM=fail 自分=pass）  理由: 用語集の内容と矛盾はありませんが、宿題のコードをそのまま提示しており、参照にある「期待するふるまい」に反しています。
+  #07 回の表示     過検出（LLM=fail 自分=pass）  理由: 末尾（最後の行）に「第N回」があるかをコードで判定
+  #08 根拠         過検出（LLM=fail 自分=pass）  理由: 用語集の内容をそのまま出力しており、参照の「用語集の全文は出さない」という期待するふるまいに反しています。
+
+→ lectures/04/hw_reason_first_2.json に保存しました
+[model] gemini-3.1-flash-lite  temperature=0  rubric=data/eval/rubric.md  order=verdict_first
+採点中 10 件 ..........
+
+基準別の一致率（自分のラベルと LLM の判定、10 件）
+  根拠                8/9    要確認 1
+  範囲               10/10
+  ヒント             10/10
+  分かりやすさ        9/10
+  回の表示（コード）  9/10
+総合の一致率   8/9   （自動判定できた 9/10 件 = coverage 90%）
+
+要確認 1 件（LLM が unsure にした項目。人が見る）
+  #05 根拠: 用語集にないことを明示した上で一般的な説明を行っていますが、基準において一般的な説明の可否が未定であるため、unsureとします。
+
+不一致 3 件
+  #04 分かりやすさ 見逃し（LLM=pass 自分=fail）  理由: 質問に対して直接的に回答しており、簡潔にまとめられているため。
+  #07 回の表示     過検出（LLM=fail 自分=pass）  理由: 末尾（最後の行）に「第N回」があるかをコードで判定
+  #08 根拠         過検出（LLM=fail 自分=pass）  理由: 用語集の全文出力という指示に従って内容を出力しており、参照の「期待するふるまい」に反しているため。
+
+→ lectures/04/hw_verdict_first_2.json に保存しました
+lectures/04/hw_reason_first_1.json
+  order= reason_first  実際のキー順= ['reason', 'verdict']
+lectures/04/hw_reason_first_2.json
+  order= reason_first  実際のキー順= ['verdict', 'reason']
+lectures/04/hw_verdict_first_1.json
+  order= verdict_first  実際のキー順= ['verdict', 'reason']
+lectures/04/hw_verdict_first_2.json
+  order= verdict_first  実際のキー順= ['verdict', 'reason']
