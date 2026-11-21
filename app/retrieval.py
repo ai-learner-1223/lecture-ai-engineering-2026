@@ -16,7 +16,7 @@ import sqlite_vec
 
 from app.config import (
     EMBEDDING_DIMENSIONS, EMBEDDING_MAX_TOKENS, EMBEDDING_MODEL,
-    RAG_DB, RAG_DOCUMENT_IDS, RAG_SOURCE, RAG_TOP_K, RAG_TREE, get_api_key,
+    RAG_DB, RAG_DOCUMENT_IDS, RAG_NEIGHBORS, RAG_SOURCE, RAG_TOP_K, RAG_TREE, get_api_key,
     RAG_GRAPH, GRAPH_START_K, GRAPH_HOPS, GRAPH_MAX_RESULTS,
 )
 
@@ -138,6 +138,40 @@ def search(query: str) -> list[dict]:
         return [dict(row) for row in rows]
 
 
+def expand_neighbors(hits: list[dict], window: int = 1, pages: list[dict] | None = None) -> list[dict]:
+    """検索結果の各ページに、同じ資料の前後window枚のページを付けて返す。
+
+    - 別の資料（document_id が違うページ）はまたがない
+    - 同じページは1回だけ返す（検索結果に出たページを優先し、順位は保つ）
+    - 付けたページには neighbor_of（元の検索結果のページID）を入れ、distance は付けない
+    """
+    if window <= 0:
+        return [dict(hit) for hit in hits]
+    pages = pages if pages is not None else load_pages(RAG_SOURCE)
+    by_position = {(page["document_id"], page["page"]): page for page in pages}
+    hit_ids = {hit["page_id"] for hit in hits}
+    seen, results = set(), []
+    for hit in hits:
+        group = []
+        for offset in range(-window, window + 1):
+            if offset == 0:
+                group.append({**hit, "retrieved_by": "search"})
+                continue
+            neighbor = by_position.get((hit["document_id"], hit["page"] + offset))
+            if neighbor and neighbor["page_id"] not in hit_ids:
+                group.append({**neighbor, "retrieved_by": "neighbor", "neighbor_of": hit["page_id"]})
+        for page in group:  # ページ順（前→検索結果→後）で並べ、重複は除く
+            if page["page_id"] not in seen:
+                seen.add(page["page_id"])
+                results.append(page)
+    return results
+
+
+def search_with_neighbors(query: str, window: int = RAG_NEIGHBORS) -> list[dict]:
+    """ベクトル検索の結果に、前後ページの本文を付けて返す。window=0なら search と同じ。"""
+    return expand_neighbors(search(query), window)
+
+
 def search_graph(query: str) -> dict:
     """ベクトル検索を入口に、前後ページと共通用語で候補を広げる。"""
     pages = {page["page_id"]: page for page in load_pages(RAG_SOURCE)}
@@ -201,9 +235,13 @@ def run_full_context(agent, question: str, model, instructions: str, prompt_temp
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="エージェントを使わず、講義資料の検索だけを実行する")
     parser.add_argument("query", help="調べたい内容")
+    parser.add_argument("--neighbors", type=int, default=RAG_NEIGHBORS,
+                        help="検索結果の前後に付けるページ数（既定は AIE_RAG_NEIGHBORS、未設定なら0）")
     args = parser.parse_args()
-    for i, result in enumerate(search(args.query), 1):
-        print(f"\n{'=' * 60}\n検索結果 {i}\n{'=' * 60}")
+    for i, result in enumerate(search_with_neighbors(args.query, args.neighbors), 1):
+        label = (f"前後ページ（{result['neighbor_of']} の隣）" if result.get("retrieved_by") == "neighbor"
+                 else "検索結果")
+        print(f"\n{'=' * 60}\n{i}. {label}\n{'=' * 60}")
         print(f"講義: {result['document_title']}")
         print(f"章: {result['section']}")
         print(f"タイトル: {result['title']}")
