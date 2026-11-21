@@ -5,6 +5,7 @@ import json
 import math
 import re
 import sqlite3
+import struct
 from contextlib import contextmanager
 from collections import defaultdict, deque
 from pathlib import Path
@@ -17,7 +18,7 @@ import sqlite_vec
 from app.config import (
     EMBEDDING_DIMENSIONS, EMBEDDING_MAX_TOKENS, EMBEDDING_MODEL,
     RAG_DB, RAG_DOCUMENT_IDS, RAG_NEIGHBORS, RAG_SOURCE, RAG_TOP_K, RAG_TREE, get_api_key,
-    RAG_GRAPH, GRAPH_START_K, GRAPH_HOPS, GRAPH_MAX_RESULTS,
+    RAG_GRAPH, GRAPH_START_K, GRAPH_HOPS, GRAPH_MAX_RESULTS, GRAPH_RANK, HYBRID_TOP_K,
 )
 
 
@@ -124,8 +125,8 @@ def open_index(path: Path):
         db.close()
 
 
-def search(query: str) -> list[dict]:
-    """質問を埋め込み、近いページを最大RAG_TOP_K件返す。"""
+def search_with_vector(query: str, top_k: int = RAG_TOP_K) -> tuple[list[dict], list[float]]:
+    """質問を埋め込み、近いページを最大top_k件と、質問の埋め込みベクトルを返す。"""
     if not isinstance(query, str) or not query.strip():
         raise ValueError("検索語が空です。")
     with open_index(RAG_DB) as db:
@@ -134,8 +135,44 @@ def search(query: str) -> list[dict]:
             SELECT page_id, document_id, lecture, document_title, section, title, page, content,
                    vec_distance_cosine(embedding, ?) AS distance
             FROM chunks ORDER BY distance, page_id LIMIT ?
-        """, (sqlite_vec.serialize_float32(vector), RAG_TOP_K))
-        return [dict(row) for row in rows]
+        """, (sqlite_vec.serialize_float32(vector), top_k))
+        return [dict(row) for row in rows], vector
+
+
+def search(query: str) -> list[dict]:
+    """質問を埋め込み、近いページを最大RAG_TOP_K件返す。"""
+    return search_with_vector(query)[0]
+
+
+def page_embeddings(page_ids) -> dict[str, list[float]]:
+    """検索DBに保存済みのページ埋め込みを読み出す（APIは呼ばない）。"""
+    page_ids = list(page_ids)
+    if not page_ids:
+        return {}
+    with open_index(RAG_DB) as db:
+        marks = ",".join("?" * len(page_ids))
+        rows = db.execute(f"SELECT page_id, embedding FROM chunks WHERE page_id IN ({marks})", page_ids)
+        return {row["page_id"]: list(struct.unpack(f"{len(row['embedding']) // 4}f", row["embedding"]))
+                for row in rows}
+
+
+def cosine(a: list[float], b: list[float]) -> float:
+    """コサイン類似度。保存済みの埋め込みは長さ1に揃えてあるが、念のため割る。"""
+    na, nb = math.hypot(*a), math.hypot(*b)
+    return sum(x * y for x, y in zip(a, b)) / (na * nb) if na and nb else 0.0
+
+
+def first_sentence(text: str) -> str:
+    """本文の先頭文（句点のない本文は先頭行）。Treeの候補文と同じ切り方。"""
+    return re.split(r"(?<=[。！？])|\n", text.strip(), maxsplit=1)[0]
+
+
+def search_candidates(query: str, top_k: int = HYBRID_TOP_K) -> list[dict]:
+    """発展(案A): 近いページを広く集め、本文は付けずに章・タイトル・先頭文だけ返す。"""
+    hits, _ = search_with_vector(query, top_k)
+    return [{"page_id": hit["page_id"], "lecture": hit["lecture"], "section": hit["section"],
+             "title": hit["title"], "page": hit["page"], "first_sentence": first_sentence(hit["content"]),
+             "distance": round(hit["distance"], 4)} for hit in hits]
 
 
 def expand_neighbors(hits: list[dict], window: int = 1, pages: list[dict] | None = None) -> list[dict]:
@@ -172,8 +209,13 @@ def search_with_neighbors(query: str, window: int = RAG_NEIGHBORS) -> list[dict]
     return expand_neighbors(search(query), window)
 
 
-def search_graph(query: str) -> dict:
-    """ベクトル検索を入口に、前後ページと共通用語で候補を広げる。"""
+def search_graph(query: str, rank_by: str | None = None) -> dict:
+    """ベクトル検索を入口に、前後ページと共通用語で候補を広げる。
+
+    rank_by="semantic"（発展・案B）では、広げた候補をhop数ごとに、質問との意味の近さで並べる。
+    従来の "id" では、同じhop数・同じ用語の候補がページIDの文字順で並ぶため、第1回・第2回の
+    ページが優先され、同じ用語（例:「メモリ」）でも意味の違うページが選ばれることがあった。
+    """
     pages = {page["page_id"]: page for page in load_pages(RAG_SOURCE)}
     graph = json.loads(RAG_GRAPH.read_text(encoding="utf-8"))
     nodes = {node["id"]: node for node in graph["nodes"]
@@ -185,7 +227,13 @@ def search_graph(query: str) -> dict:
             adjacent[a].add(b)
             adjacent[b].add(a)
 
-    seeds = [hit for hit in search(query) if hit["page_id"] in pages][:min(GRAPH_START_K, GRAPH_MAX_RESULTS)]
+    if rank_by is None:
+        rank_by = GRAPH_RANK
+    if rank_by == "semantic":
+        hits, query_vector = search_with_vector(query)
+    else:
+        hits, query_vector = search(query), None
+    seeds = [hit for hit in hits if hit["page_id"] in pages][:min(GRAPH_START_K, GRAPH_MAX_RESULTS)]
     seed_ids = {seed["page_id"] for seed in seeds}
     results, candidates = [], {}
     for rank, seed in enumerate(seeds):
@@ -214,9 +262,18 @@ def search_graph(query: str) -> dict:
                              "path": [{"id": n, "title": nodes[n]["title"]} for n in route]}
                 if neighbor not in candidates or priority < candidates[neighbor][0]:
                     candidates[neighbor] = (priority, candidate)
-    expanded = [candidate for _, candidate in sorted(candidates.values())]
+    if rank_by == "semantic":
+        vectors = page_embeddings(candidates)
+        for page_id, (priority, candidate) in candidates.items():
+            if page_id in vectors:
+                candidate["similarity"] = round(cosine(query_vector, vectors[page_id]), 4)
+        ordered = sorted(candidates.values(),
+                         key=lambda item: (item[1]["hops"], -item[1].get("similarity", -1.0), item[0]))
+    else:
+        ordered = sorted(candidates.values())
+    expanded = [candidate for _, candidate in ordered]
     return {"seeds": results, "expanded": expanded[:max(0, GRAPH_MAX_RESULTS - len(results))],
-            "max_hops": GRAPH_HOPS}
+            "max_hops": GRAPH_HOPS, "rank_by": rank_by}
 
 
 

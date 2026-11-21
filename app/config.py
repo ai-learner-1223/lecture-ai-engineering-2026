@@ -25,6 +25,11 @@ RAG_NEIGHBORS = int(os.getenv("AIE_RAG_NEIGHBORS", "0"))
 GRAPH_START_K = 3
 GRAPH_HOPS = 2
 GRAPH_MAX_RESULTS = 10
+# 発展(案B): Graphで広げた候補の並べ方。"id"=従来（hop数→用語の出現数→入口の順位→ページIDの文字順）、
+# "semantic"=hop数が同じ候補を、質問との意味の近さ（埋め込みのコサイン類似度）で並べる。
+GRAPH_RANK = os.getenv("AIE_GRAPH_RANK", "id")
+# 発展(案A): 見出しで広く探す候補数（本文は返さず、章・タイトル・先頭文だけ）。
+HYBRID_TOP_K = int(os.getenv("AIE_HYBRID_TOP_K", "15"))
 EMBEDDING_MODEL = "gemini-embedding-001"
 EMBEDDING_DIMENSIONS = 768
 # 2,048トークンの上限に対し、タスク指定等の分を残す。超過時は切り捨てず停止する。

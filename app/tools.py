@@ -127,3 +127,32 @@ def search_graph(query: str) -> str:
         return json.dumps({"error": str(e)}, ensure_ascii=False)
     except APIError as e:
         return json.dumps({"error": api_error_message(e.code)}, ensure_ascii=False)
+
+
+def search_candidates(query: str) -> str:
+    """第1〜3回の本講義資料を検索し、関連しそうなページの候補を広く返す（本文は含まない）。
+
+    各候補は page_id・回・章・タイトル・PDFページ番号・本文の先頭文だけ。
+    答えの根拠にするページは、read_page(page_id) で全文を読んでから使う。
+    queryに調べたい内容を指定する。
+    """
+    import sqlite3
+    from google.genai.errors import APIError
+    from app import retrieval
+
+    try:
+        return json.dumps({"candidates": retrieval.search_candidates(query)}, ensure_ascii=False)
+    except (ValueError, FileNotFoundError, sqlite3.Error) as e:
+        return json.dumps({"error": str(e), "candidates": []}, ensure_ascii=False)
+    except APIError as e:
+        return json.dumps({"error": api_error_message(e.code), "candidates": []}, ensure_ascii=False)
+
+
+def read_page(page_id: str) -> str:
+    """search_candidates で見つけたページIDを指定し、そのページの全文と引用情報を返す。"""
+    from app import retrieval
+
+    try:
+        return json.dumps(retrieval.read_page(page_id), ensure_ascii=False)
+    except (ValueError, OSError) as e:
+        return json.dumps({"error": str(e)}, ensure_ascii=False)
