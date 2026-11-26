@@ -2,13 +2,18 @@
 
 ## 演習
 
+- STEP 1 のツールの名前：glossary_search_glossary
+- STEP 2 の [tool call]：glossary_search_glossary({'query': '3レベル'})
+- STEP 3 の [tool call]：fetch_fetch({'url': 'https://modelcontextprotocol.io/'})
+- STEP 4 の [tool call]：aws_aws___search_documentation({'search_phrase': 'Amazon S3 バージョニング 概要', 'topics': ['general']})
+- 気づき・疑問：
+  - 設定ファイルに数行足すだけで、エージェントのコードを変えずに Web 取得や AWS 検索ができるようになった。`--list-tools` の表示でも、command は手元で起動、url は外部に接続、と区別されていた。
+  - fetch の説明文に「インターネットにアクセスできるようになった」という、モデルへの指示のような文があった。サーバーの説明文はそのままモデルに渡るので、提供元を確認してから足す必要があると実感した。
+  - aws を足す前に同じ質問をしたら、モデルは fetch で AWS のページを直接取りに行った。手持ちのツールで代わりを探す。
+  - STEP 4 では、日本語で検索して外れると、英語で検索し直していた。一方で指示文の「必ず用語集を確認」「関係する回を示す」に従い、根拠のない「第1回」を書き足していた。講座専用の指示文が、範囲外の質問では回答をゆがめる。
+  - 入力トークンが STEP 2 の 715 から、STEP 3 で 2,230、STEP 4 で 15,959 に増えた。ツールの説明と結果がすべてモデルに渡るので、サーバーを足すほど1回の質問が重くなる。
 <!-- [tool call] の行は、表示された行をそのまま貼り付けてください。終わらなかった STEP は、空欄のままでかまいません。 -->
 
-- STEP 1 のツールの名前：
-- STEP 2 の [tool call]：
-- STEP 3 の [tool call]：
-- STEP 4 の [tool call]：
-- 気づき・疑問：
 
 ## 宿題
 
