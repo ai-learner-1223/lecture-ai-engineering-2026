@@ -126,3 +126,46 @@ def search_graph(query: str) -> str:
         return json.dumps({"error": str(e)}, ensure_ascii=False)
     except APIError as e:
         return json.dumps({"error": api_error_message(e.code)}, ensure_ascii=False)
+
+
+def make_quiz(lecture: int) -> str:
+    """指定した回（1始まりの整数）の用語集から、確認問題を1問作って返す。
+
+    「第2回の確認問題を出して」のように、復習用の問題を求められたときに使う。
+    返り値の question を出題し、answer は利用者が答えるまで見せないこと。
+    用語が見つからないときは、用語がある回の一覧を返す。
+    """
+    import random
+
+    glossary = load_glossary()
+    available = sorted({e["lecture"] for e in glossary})
+    available_text = "、".join(f"第{n}回" for n in available)
+
+    # 回の番号として成り立たない値（0 以下）
+    if lecture < 1:
+        return json.dumps(
+            {
+                "error": f"lecture={lecture} は回の番号として使えません。回は 1 から始まる整数で指定してください。",
+                "available_lectures": available,
+                "hint": f"確認問題を作れるのは {available_text} です。",
+            },
+            ensure_ascii=False,
+        )
+
+    terms = [e for e in glossary if e["lecture"] == lecture]
+    # 回の番号としては正しいが、その回の用語がまだ用語集にない（例: 第5回、第99回）
+    if not terms:
+        return json.dumps(
+            {
+                "error": f"第{lecture}回の用語は用語集にないため、確認問題を作れません。",
+                "available_lectures": available,
+                "hint": f"確認問題を作れるのは {available_text} です。どの回にするか利用者に確認してください。",
+            },
+            ensure_ascii=False,
+        )
+
+    entry = random.choice(terms)
+    return json.dumps(
+        {"question": f"「{entry['term']}」の意味は？", "answer": entry["definition"], "lecture": lecture},
+        ensure_ascii=False,
+    )
