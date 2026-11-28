@@ -65,18 +65,24 @@
   - https://code.claude.com/docs/en/mcp
   - https://code.claude.com/docs/en/mcp-quickstart
 - やったこと：Claude Code の MCP サーバーの設定方法を公式ドキュメントで調べ、演習の `app/mcp_servers.json` と比べた。
-
-  | 観点 | 演習（`app/mcp_servers.json`） | Claude Code |
-  |---|---|---|
-  | 設定を書く場所 | `app/mcp_servers.json` | local（既定）：`~/.claude.json` の、そのプロジェクトの項目の下／project：プロジェクト直下の `.mcp.json`／user：`~/.claude.json`。`claude mcp add` コマンドでも書き込める |
-  | コマンドで起動 | `"command"` ＋ `"args"` | 同じ `"command"` ＋ `"args"`（＋`"env"`）。`type` がない項目は stdio として読まれる。コマンドなら `claude mcp add <名前> -- <コマンド> [引数…]` |
-  | URL で接続 | `"url"` だけ | `"type": "http"` ＋ `"url"`。`"headers"` で認証ヘッダーを付けられる。コマンドなら `claude mcp add --transport http <名前> <URL>` |
-  | 有効になる範囲 | このリポジトリのエージェントだけ | local：自分だけ・このプロジェクトだけ／project：`.mcp.json` をコミットすれば clone した全員／user：自分の全プロジェクト。同じ名前は local → project → user の順に優先される |
-
 - 結果：
-  - 外側の `"mcpServers"` の形は同じなので、`glossary` と `fetch` はそのまま `.mcp.json` に移せる
-  - いちばん大きな違いは URL の書き方。演習の `"aws": {"url": "…"}` をそのまま写すと、`type` がないので stdio として読まれ、設定の誤りになる。`"type": "http"` を足す必要がある
-  - Claude Code には演習にない仕組みがある
-    - `.mcp.json` のサーバーは、使う前に利用者の承認を求める（任意のプログラムを起動できるため）
-    - `${VAR}` で環境変数を展開できるので、API キーを設定ファイルに直接書かずに済む
+  - 設定を書く場所
+    - 演習：`app/mcp_servers.json` の1つだけ。
+    - Claude Code：local（既定）は `~/.claude.json` の、そのプロジェクトの項目の下。project はプロジェクト直下の `.mcp.json`。user は `~/.claude.json`。`claude mcp add` コマンドでも書き込める。
+    - 違い：演習は置き場所が1つ。Claude Code は置き場所が3つあり、コマンドでも登録できる。
+  - コマンドで起動する書き方
+    - 演習：`"command"` ＋ `"args"`。
+    - Claude Code：同じ `"command"` ＋ `"args"`（＋`"env"`）。`type` がない項目は stdio として読まれる。コマンドなら `claude mcp add <名前> -- <コマンド> [引数…]`。
+    - 違い：ほぼ同じ。外側の `"mcpServers"` の形も同じなので、`glossary` と `fetch` はそのまま `.mcp.json` に移せる。
+  - URL で接続する書き方
+    - 演習：`"url"` だけ。
+    - Claude Code：`"type": "http"` ＋ `"url"`。`"headers"` で認証ヘッダーを付けられる。コマンドなら `claude mcp add --transport http <名前> <URL>`。
+    - 違い：いちばん大きな違い。演習の `"aws": {"url": "…"}` をそのまま写すと、`type` がないので stdio として読まれ、設定の誤りになる。`"type": "http"` を足す必要がある。
+  - 有効になる範囲
+    - 演習：このリポジトリのエージェントだけ。
+    - Claude Code：local は自分だけ・このプロジェクトだけ。project は `.mcp.json` をコミットすれば、clone した全員。user は自分の全プロジェクト。同じ名前は local → project → user の順に優先される。
+    - 違い：演習は範囲が1つだけ。Claude Code は、自分だけかチームで共有するかを選べる。
+  - Claude Code には、演習にない仕組みもある。
+    - 対話で使うときは、`.mcp.json` のサーバーを使う前に利用者の承認を求める（任意のプログラムを起動できるため）。
+    - `${VAR}` で環境変数を展開できるので、API キーを設定ファイルに直接書かずに済む。
 - 気づき・疑問：演習のエージェントは、`mcp_servers.json` に書かれたものを確認なしで起動・接続する。演習の補足（提供元とリスクを確認してから足す）を、仕組みとして求めているのが Claude Code の承認だと理解した。演習の STEP 3 で fetch の説明文にモデルへの指示のような文があったことからも、この確認は大切と思う。
